@@ -385,10 +385,9 @@ class GPTService
     }
 
     /**
-     * Редактирует изображение, объединяя два изображения в одно.
+     * Редактирует изображение, объединяя переданные изображения в одно.
      *
-     * @param string $image1Path Путь к первому изображению
-     * @param string $image2Path Путь ко второму изображению
+     * @param array<string> $imagePaths Массив путей к изображениям
      * @param string $prompt Промпт для редактирования
      * @param string $model Модель для редактирования изображений (по умолчанию 'gpt-image-1')
      * @param string $size Размер результата (по умолчанию '1024x1536')
@@ -401,8 +400,7 @@ class GPTService
      * @throws GuzzleException
      */
     public function editImages(
-        string $image1Path,
-        string $image2Path,
+        array $imagePaths,
         string $prompt,
         string $model = 'gpt-image-1',
         string $size = '1024x1536',
@@ -411,6 +409,15 @@ class GPTService
         string $moderation = 'low'
     ): array
     {
+        if (empty($imagePaths)) {
+            return [
+                'status' => 0,
+                'body' => null,
+                'error_code' => 'no_images',
+                'error_message' => 'At least one image path must be provided',
+            ];
+        }
+
         $headers = $this->defaultHeaders;
         unset($headers['Content-Type']);
 
@@ -421,9 +428,11 @@ class GPTService
             'quality' => $quality,
             'output_format' => $outputFormat,
             'moderation' => $moderation,
-            'image[0]' => new \CURLFile($image1Path, 'image/png'),
-            'image[1]' => new \CURLFile($image2Path, 'image/png'),
         ];
+
+        foreach ($imagePaths as $index => $imagePath) {
+            $body["image[$index]"] = new \CURLFile($imagePath, 'image/png');
+        }
 
         $options = [
             'headers' => $headers,
