@@ -350,6 +350,102 @@ class GPTService
     }
 
     /**
+     * Генерирует изображение на основе текстового описания.
+     *
+     * @param string $prompt Текстовое описание изображения
+     * @param string $model Модель для генерации изображений (по умолчанию 'gpt-image-1')
+     * @param string $size Размер изображения (по умолчанию '1024x1536')
+     * @param string $quality Качество изображения (по умолчанию 'medium')
+     * @param string $outputFormat Формат выходного изображения (по умолчанию 'png')
+     * @param string $moderation Уровень модерации (по умолчанию 'low')
+     *
+     * @return array{status:int, body:mixed, error_code:string|null, error_message:string|null}
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    public function generateImage(
+        string $prompt,
+        string $model = 'gpt-image-1',
+        string $size = '1024x1536',
+        string $quality = 'medium',
+        string $outputFormat = 'png',
+        string $moderation = 'low'
+    ): array
+    {
+        $payload = [
+            'model' => $model,
+            'prompt' => $prompt,
+            'size' => $size,
+            'quality' => $quality,
+            'output_format' => $outputFormat,
+            'moderation' => $moderation,
+        ];
+
+        return $this->request('POST', 'images/generations', $payload);
+    }
+
+    /**
+     * Редактирует изображение, объединяя два изображения в одно.
+     *
+     * @param string $image1Path Путь к первому изображению
+     * @param string $image2Path Путь ко второму изображению
+     * @param string $prompt Промпт для редактирования
+     * @param string $model Модель для редактирования изображений (по умолчанию 'gpt-image-1')
+     * @param string $size Размер результата (по умолчанию '1024x1536')
+     * @param string $quality Качество результата (по умолчанию 'medium')
+     * @param string $outputFormat Формат выходного изображения (по умолчанию 'png')
+     * @param string $moderation Уровень модерации (по умолчанию 'low')
+     *
+     * @return array{status:int, body:mixed, error_code:string|null, error_message:string|null}
+     * @throws JsonException|GuzzleException
+     */
+    public function editImages(
+        string $image1Path,
+        string $image2Path,
+        string $prompt,
+        string $model = 'gpt-image-1',
+        string $size = '1024x1536',
+        string $quality = 'medium',
+        string $outputFormat = 'png',
+        string $moderation = 'low'
+    ): array
+    {
+        $headers = $this->defaultHeaders;
+        unset($headers['Content-Type']);
+
+        $body = [
+            'model' => $model,
+            'prompt' => $prompt,
+            'size' => $size,
+            'quality' => $quality,
+            'output_format' => $outputFormat,
+            'moderation' => $moderation,
+            'image[0]' => new \CURLFile($image1Path, 'image/png'),
+            'image[1]' => new \CURLFile($image2Path, 'image/png'),
+        ];
+
+        $options = [
+            'headers' => $headers,
+            'body' => $body,
+            'http_errors' => false,
+        ];
+
+        $uri = 'images/edits';
+        $response = $this->client->request('POST', $uri, $options);
+
+        $status = $response->getStatusCode();
+        $bodyContent = (string)$response->getBody();
+        $decoded = json_decode($bodyContent, true, 512, JSON_THROW_ON_ERROR);
+
+        return [
+            'status' => $status,
+            'body' => $decoded,
+            'error_code' => null,
+            'error_message' => null,
+        ];
+    }
+
+    /**
      * Строит текст структуры воронки продаж на основе шаблона classic.tpl.
      *
      * @param string $product Название продукта
@@ -360,8 +456,6 @@ class GPTService
      * @return array{text:string}|array{error:string}
      * @throws JsonException
      */
-    public function buildStructure(string $product, string $audience, string $goal, string $pains): array
-    {
         $loader = new PromptLoader();
         $templatePath = __DIR__ . '/../Prompts/classic.tpl';
 
