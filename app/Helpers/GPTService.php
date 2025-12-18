@@ -397,7 +397,8 @@ class GPTService
      * @param string $moderation Уровень модерации (по умолчанию 'low')
      *
      * @return array{status:int, body:mixed, error_code:string|null, error_message:string|null}
-     * @throws JsonException|GuzzleException
+     * @throws JsonException
+     * @throws GuzzleException
      */
     public function editImages(
         string $image1Path,
@@ -443,45 +444,5 @@ class GPTService
             'error_code' => null,
             'error_message' => null,
         ];
-    }
-
-    /**
-     * Строит текст структуры воронки продаж на основе шаблона classic.tpl.
-     *
-     * @param string $product Название продукта
-     * @param string $audience Целевая аудитория
-     * @param string $goal Цель воронки
-     * @param string $pains Основные боли аудитории
-     *
-     * @return array{text:string}|array{error:string}
-     * @throws JsonException
-     */
-        $loader = new PromptLoader();
-        $templatePath = __DIR__ . '/../Prompts/classic.tpl';
-
-        // Проверяем наличие шаблона
-        if (!file_exists($templatePath)) {
-            return ['error' => 'template_not_found'];
-        }
-
-        try {
-            $encoded = $loader->load($templatePath);
-            $template = json_decode($encoded, true);
-            if ($template === null && json_last_error() !== JSON_ERROR_NONE) {
-                throw new \RuntimeException('Invalid template JSON');
-            }
-        } catch (\Throwable $e) {
-            Logger::error('Failed to load template', ['exception' => $e]);
-            return ['error' => 'template_read_error'];
-        }
-
-        $prompt = str_replace(
-            ['{{product}}', '{{audience}}', '{{goal}}', '{{pains}}'],
-            [$product, $audience, $goal, $pains],
-            $template
-        );
-        $prompt = JsonHelper::encodePrompt($prompt);
-
-        return ['text' => $prompt];
     }
 }
