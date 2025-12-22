@@ -47,11 +47,11 @@ class GPTService
      */
     public function __construct(string $apiKey, array $guzzleConfig = [], int $failureThreshold = 5, int $openTimeout = 30)
     {
-        $timeout = (float)($_ENV['GPT_TIMEOUT'] ?? 15);
+        $timeout = (float)($_ENV['GPT_TIMEOUT'] ?? 120);
         $config = array_merge([
             'base_uri' => 'https://api.aitunnel.ru/v1/',
             'timeout' => $timeout,
-            'verify' => true,
+            'verify' => false,
         ], $guzzleConfig);
 
         $this->client = new Client($config);
