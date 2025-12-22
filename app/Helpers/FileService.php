@@ -1,17 +1,10 @@
 <?php
 
-/*
- * Copyright (c) 2025. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
- * Morbi non lorem porttitor neque feugiat blandit. Ut vitae ipsum eget quam lacinia accumsan.
- * Etiam sed turpis ac ipsum condimentum fringilla. Maecenas magna.
- * Proin dapibus sapien vel ante. Aliquam erat volutpat. Pellentesque sagittis ligula eget metus.
- * Vestibulum commodo. Ut rhoncus gravida arcu.
- */
-
 declare(strict_types=1);
 
 namespace App\Helpers;
 
+use Longman\TelegramBot\Entities\File;
 use Longman\TelegramBot\Request;
 use Longman\TelegramBot\Telegram;
 use PDO;
@@ -166,19 +159,29 @@ final class FileService
     }
     
     /**
+     * Get MIME type of a file
+     */
+    public function getMimeType(string $filePath): string
+    {
+        // Проверяем существование файла
+        if (!file_exists($filePath)) {
+            return '';
+        }
+        
+        // Используем mime_content_type для определения MIME-типа
+        $mimeType = mime_content_type($filePath);
+        
+        // Возвращаем MIME-тип или пустую строку, если не удалось определить
+        return $mimeType ?: '';
+    }
+    
+    /**
      * Download file from Telegram
      */
-    public function downloadTelegramFile(string $fileId, string $fileName): ?string
+    public function downloadTelegramFile(File $file, string $fileName): ?string
     {
         try {
-            // Получаем информацию о файле
-            $response = Request::getFile(['file_id' => $fileId]);
-            if (! $response || ! $response->isOk()) {
-                return null;
-            }
-            
-            $result = $response->getResult();
-            $filePath = $result->getFilePath();
+            $filePath = $file->getFilePath();
             
             // Загружаем файл
             $fileUrl = 'https://api.telegram.org/file/bot' . $this->telegram->getApiKey() . '/' . $filePath;
@@ -195,7 +198,7 @@ final class FileService
             
             return $localPath;
         } catch (\Exception $e) {
-            error_log('Error downloading Telegram file: ' . $e->getMessage());
+            Logger::error('Error downloading Telegram file: ' . $e->getMessage());
             return null;
         }
     }

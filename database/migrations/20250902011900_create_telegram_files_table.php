@@ -9,8 +9,10 @@ final class CreateTelegramFilesTable extends AbstractMigration
     {
         $this->execute("CREATE TABLE IF NOT EXISTS `telegram_files` (
             `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `user_id` BIGINT UNSIGNED NOT NULL,
             `type` VARCHAR(255) NOT NULL,
-            `original_name` VARCHAR(255) NOT NULL,
+            `file_name` VARCHAR(255) NOT NULL,
+            `file_path` VARCHAR(255) NOT NULL,
             `mime_type` VARCHAR(255) NOT NULL,
             `size` BIGINT UNSIGNED NOT NULL,
             `file_id` VARCHAR(255) NOT NULL,

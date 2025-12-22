@@ -32,7 +32,7 @@ class MessageHandler
         $text = $message->getText() ?? '';
         
         // Проверяем наличие медиа в сообщении
-        $hasMedia = $message->getPhoto() || $message->getVideo() || $message->getDocument();
+        $hasMedia = $message->getPhoto() || $message->getVideo();
 
         if ($writeAccess instanceof WriteAccessAllowed) {
             $handler = new WriteAccessAllowedMessageHandler();
