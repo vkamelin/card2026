@@ -9,6 +9,7 @@ use App\Handlers\Telegram\Commands\ResetCommandHandler;
 use App\Handlers\Telegram\Commands\StartCommandHandler;
 use App\Handlers\Telegram\Commands\WheelCommandHandler;
 use App\Handlers\Telegram\Messages\TextMessageHandler;
+use App\Handlers\Telegram\Messages\MediaMessageHandler;
 use App\Handlers\Telegram\Messages\WriteAccessAllowedMessageHandler;
 use Exception;
 use Longman\TelegramBot\Entities\Update;
@@ -29,9 +30,15 @@ class MessageHandler
         /** @var WriteAccessAllowed|null $writeAccess */
         $writeAccess = $message->getWriteAccessAllowed();
         $text = $message->getText() ?? '';
+        
+        // Проверяем наличие медиа в сообщении
+        $hasMedia = $message->getPhoto() || $message->getVideo() || $message->getDocument();
 
         if ($writeAccess instanceof WriteAccessAllowed) {
             $handler = new WriteAccessAllowedMessageHandler();
+        } elseif ($hasMedia) {
+            // Обрабатываем медиа сообщения
+            $handler = new MediaMessageHandler();
         } else {
             $text = str_starts_with($text, '/start') ? '/start' : $text;
 

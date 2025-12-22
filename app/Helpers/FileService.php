@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace App\Helpers;
 
 use Longman\TelegramBot\Request;
+use Longman\TelegramBot\Telegram;
 use PDO;
 
 /**
@@ -22,11 +23,13 @@ final class FileService
 {
     private PDO $db;
     private int $defaultChatId;
+    private Telegram $telegram;
 
-    public function __construct(?PDO $db = null, ?int $defaultChatId = null)
+    public function __construct(?PDO $db = null, ?int $defaultChatId = null, ?Telegram $telegram = null)
     {
         $this->db = $db ?? Database::getInstance();
         $this->defaultChatId = $defaultChatId ?? (int)($_ENV['TELEGRAM_DEFAULT_CHAT_ID'] ?? 0);
+        $this->telegram = $telegram ?? new Telegram($_ENV['TELEGRAM_BOT_TOKEN'], $_ENV['TELEGRAM_BOT_USERNAME']);
     }
 
     public function sendPhoto(string $path, ?int $chatId = null, array $params = []): ?string
@@ -151,12 +154,49 @@ final class FileService
             'INSERT INTO `telegram_files` (type, original_name, mime_type, size, file_id)'
             . ' VALUES (:type, :original_name, :mime_type, :size, :file_id)'
         );
-        $stmt->execute([
-            'type' => $type,
-            'original_name' => basename($path),
-            'mime_type' => mime_content_type($path) ?: '',
-            'size' => filesize($path) ?: 0,
-            'file_id' => $fileId,
-        ]);
+        if ($stmt) {
+            $stmt->execute([
+                'type' => $type,
+                'original_name' => basename($path),
+                'mime_type' => mime_content_type($path) ?: '',
+                'size' => filesize($path) ?: 0,
+                'file_id' => $fileId,
+            ]);
+        }
+    }
+    
+    /**
+     * Download file from Telegram
+     */
+    public function downloadTelegramFile(string $fileId, string $fileName): ?string
+    {
+        try {
+            // Получаем информацию о файле
+            $response = Request::getFile(['file_id' => $fileId]);
+            if (! $response || ! $response->isOk()) {
+                return null;
+            }
+            
+            $result = $response->getResult();
+            $filePath = $result->getFilePath();
+            
+            // Загружаем файл
+            $fileUrl = 'https://api.telegram.org/file/bot' . $this->telegram->getApiKey() . '/' . $filePath;
+            $localPath = 'storage/uploads/' . $fileName;
+            
+            // Создаем директорию если не существует
+            $dir = dirname($localPath);
+            if (! is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            
+            // Скачиваем файл
+            file_put_contents($localPath, file_get_contents($fileUrl));
+            
+            return $localPath;
+        } catch (\Exception $e) {
+            error_log('Error downloading Telegram file: ' . $e->getMessage());
+            return null;
+        }
     }
 }
